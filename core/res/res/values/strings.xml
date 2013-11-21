@@ -4523,4 +4523,26 @@
     <!-- Cling help message when hiding the navigation bar entering immersive mode [CHAR LIMIT=none] -->
     <string name="immersive_mode_confirmation" msgid="8554991488096662508">Swipe down from the top to exit full screen.</string>
 
+    <!-- Label for item that reboots the device in device options dialog -->
+    <string name="global_action_reboot">Reboot</string>
+    <!-- Button to reboot the device, within the reboot options dialog -->
+    <string name="reboot_reboot">@string/global_action_reboot</string>
+    <!-- Button to reboot the device into recovery, within the reboot options dialog -->
+    <string name="reboot_recovery">Recovery</string>
+    <!-- Button to reboot the device into fastboot, within the reboot options dialog -->
+    <string name="reboot_fastboot">Fastboot</string>
+
+    <!-- Reboot confirmation dialog title -->
+    <string name="reboot_system" product="tablet">Reboot tablet</string>
+    <string name="reboot_system" product="default">Reboot phone</string>
+    <!-- Reboot confirmation dialog.  This is the message shown to the user when he chooses to reboot the device -->
+    <string name="reboot_confirm" product="tablet">Your tablet will reboot.</string>
+    <string name="reboot_confirm" product="default">Your phone will reboot.</string>
+
+    <!-- Reboot progress dialog. This is shown if the user chooses to reboot the device. -->
+    <string name="reboot_progress">Rebooting\u2026</string>
+
+    <!-- Label for item that screenshots in device options dialog -->
+    <string name="global_action_screenshot">Screenshot</string>
+
 </resources>
