@@ -23,5 +23,6 @@
 
     <!-- Screenshot delete -->
     <string name="screenshot_delete_action">删除</string>
+    <string name="screenshot_delete_confirmation">截图已删除.</string>
 
 </resources>
