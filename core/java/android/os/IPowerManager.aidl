@@ -17,6 +17,7 @@
 
 package android.os;
 
+import android.os.IPowerManagerCallback;
 import android.os.WorkSource;
 
 /** @hide */
@@ -32,6 +33,9 @@ interface IPowerManager
     void releaseWakeLock(IBinder lock, int flags);
     void updateWakeLockUids(IBinder lock, in int[] uids);
     oneway void powerHint(int hintId, int data);
+
+    void registerCallback(IPowerManagerCallback callback);
+    void unregisterCallback(IPowerManagerCallback callback);
 
     void updateWakeLockWorkSource(IBinder lock, in WorkSource ws, String historyTag);
     boolean isWakeLockLevelSupported(int level);

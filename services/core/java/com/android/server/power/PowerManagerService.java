@@ -49,11 +49,13 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.IPowerManager;
+import android.os.IPowerManagerCallback;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManagerInternal;
 import android.os.Process;
+import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -72,6 +74,7 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import libcore.util.Objects;
 
@@ -441,6 +444,9 @@ public final class PowerManagerService extends SystemService
     private static native void nativeSetInteractive(boolean enable);
     private static native void nativeSetAutoSuspend(boolean enable);
     private static native void nativeSendPowerHint(int hintId, int data);
+
+    private final RemoteCallbackList<IPowerManagerCallback> mCallbacks = new RemoteCallbackList<IPowerManagerCallback>();
+    private final BinderService mPowerService = new BinderService();
 
     public PowerManagerService(Context context) {
         super(context);
@@ -1943,6 +1949,16 @@ public final class PowerManagerService extends SystemService
                         + ", mScreenBrightnessBoostInProgress="
                                 + mScreenBrightnessBoostInProgress);
             }
+
+            if (mDisplayManagerInternal != null) {
+                int curDisplayPowerRequestStatus = mDisplayPowerRequest.policy;
+                int curDisplayScreenOnStatus = mWakefulness;
+                if (curDisplayPowerRequestStatus >= 0 && curDisplayScreenOnStatus >= 0)
+                    mPowerService.broadcastPowerStateChanged(
+                        curDisplayScreenOnStatus > 0,
+                        curDisplayPowerRequestStatus == DisplayPowerRequest.POLICY_BRIGHT);
+            }
+
         }
         return mDisplayReady && !oldDisplayReady;
     }
@@ -2806,6 +2822,7 @@ public final class PowerManagerService extends SystemService
         }
     }
 
+    private static final AtomicInteger mSuspendBlockerCalls = new AtomicInteger();
     private final class SuspendBlockerImpl implements SuspendBlocker {
         private final String mName;
         private final String mTraceName;
@@ -2823,6 +2840,9 @@ public final class PowerManagerService extends SystemService
                     Slog.wtf(TAG, "Suspend blocker \"" + mName
                             + "\" was finalized without being released!");
                     mReferenceCount = 0;
+                    if (mSuspendBlockerCalls.decrementAndGet() == 0) {
+                        mPowerService.broadcastWakeLockChanged(false, true);
+                    }
                     nativeReleaseSuspendBlocker(mName);
                     Trace.asyncTraceEnd(Trace.TRACE_TAG_POWER, mTraceName, 0);
                 }
@@ -2841,6 +2861,9 @@ public final class PowerManagerService extends SystemService
                     }
                     Trace.asyncTraceBegin(Trace.TRACE_TAG_POWER, mTraceName, 0);
                     nativeAcquireSuspendBlocker(mName);
+                    if (mSuspendBlockerCalls.incrementAndGet() == 1) {
+                        mPowerService.broadcastWakeLockChanged(true, false);
+                    }
                 }
             }
         }
@@ -2852,6 +2875,9 @@ public final class PowerManagerService extends SystemService
                 if (mReferenceCount == 0) {
                     if (DEBUG_SPEW) {
                         Slog.d(TAG, "Releasing suspend blocker \"" + mName + "\".");
+                    }
+                    if (mSuspendBlockerCalls.decrementAndGet() == 0) {
+                        mPowerService.broadcastWakeLockChanged(false, true);
                     }
                     nativeReleaseSuspendBlocker(mName);
                     Trace.asyncTraceEnd(Trace.TRACE_TAG_POWER, mTraceName, 0);
@@ -3341,6 +3367,50 @@ public final class PowerManagerService extends SystemService
                 else {
                     mBlockedUids.remove(new Integer(uid));
                 }
+            }
+        }
+
+        @Override
+        public void registerCallback(IPowerManagerCallback callback) {
+            mCallbacks.register(callback);
+        }
+
+        @Override
+        public void unregisterCallback(IPowerManagerCallback callback) {
+            mCallbacks.unregister(callback);
+        }
+
+        private void broadcastWakeLockChanged(boolean firstAcquire, boolean lastRelease) {
+            if (DEBUG) {
+                Slog.d(TAG, "Broadcast the wake lock change: firstAcquire=" + firstAcquire + " lastRelease=" + lastRelease);
+            }
+            synchronized (mCallbacks) {
+                int n = mCallbacks.beginBroadcast();
+                for (int i = 0; i < n; i++) {
+                    try {
+                        mCallbacks.getBroadcastItem(i).onWakeLockChanged(firstAcquire, lastRelease);
+                    } catch (RemoteException e) {
+                        Slog.wtf(TAG, e);
+                    }
+                }
+                mCallbacks.finishBroadcast();
+            }
+        }
+
+        private void broadcastPowerStateChanged(boolean screenOn, boolean screenBright) {
+            if (DEBUG) {
+                Slog.d(TAG, "Broadcast the power state change: screenOn=" + screenOn + " screenBright=" + screenBright);
+            }
+            synchronized (mCallbacks) {
+                int n = mCallbacks.beginBroadcast();
+                for (int i = 0; i < n; i++) {
+                    try {
+                        mCallbacks.getBroadcastItem(i).onPowerStateChanged(screenOn, screenBright);
+                    } catch (RemoteException e) {
+                        Slog.wtf(TAG, e);
+                    }
+                }
+                mCallbacks.finishBroadcast();
             }
         }
     }

@@ -18,6 +18,7 @@ package com.android.layoutlib.bridge.android;
 
 import android.os.IBinder;
 import android.os.IPowerManager;
+import android.os.IPowerManagerCallback;
 import android.os.RemoteException;
 import android.os.WorkSource;
 
@@ -145,8 +146,18 @@ public class BridgePowerManager implements IPowerManager {
     public void updateBlockedUids(int uid, boolean isBlocked) {
         // pass for now.
     }
+
     @Override
     public void boostScreenBrightness(long time) throws RemoteException {
+    }
+
+    @Override
+    public void registerCallback(IPowerManagerCallback callback) {
+        // pass for now.
+    }
+
+    @Override
+    public void unregisterCallback(IPowerManagerCallback callback) {
         // pass for now.
     }
 }
