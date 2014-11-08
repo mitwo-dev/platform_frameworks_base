@@ -32,10 +32,8 @@ package com.android.systemui.qs.tiles;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.net.ConnectivityManager;
-import android.os.AsyncTask;
 import android.os.Handler;
 import android.provider.Settings;
-import com.android.internal.telephony.SubscriptionController;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -53,7 +51,6 @@ public class DdsTile extends QSTile<QSTile.State> {
     private boolean mListening;
 
     private QSTileView mQSTileView = null;
-    private AsyncTask switchDdsAsyncTask = null;
     private final DdsObserver mDdsObserver;
 
     public DdsTile(Host host) {
@@ -125,7 +122,8 @@ public class DdsTile extends QSTile<QSTile.State> {
 
     private boolean isDefaultDataEnabled() {
         return Settings.Global.getInt(mContext.getContentResolver(),
-                Settings.Global.MOBILE_DATA + SubscriptionManager.getDefaultDataPhoneId(), 0) != 0;
+                Settings.Global.MOBILE_DATA +
+                SubscriptionManager.from(mContext).getDefaultDataPhoneId(), 0) != 0;
     }
 
     public void setListening(boolean listening) {
@@ -145,42 +143,13 @@ public class DdsTile extends QSTile<QSTile.State> {
             return;
         }
 
-        if (switchDdsAsyncTask != null &&
-                switchDdsAsyncTask.getStatus() != AsyncTask.Status.FINISHED) {
-            if (DEBUG) Log.d(TAG, "Dds switch in progress!");
-            return;
-        }
-
-        switchDdsAsyncTask = new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected void onPreExecute() {
-                super.onPreExecute();
-                // Make DDS switch grayed out and while changing subscription
-                if (mQSTileView != null) {
-                    mQSTileView.setAlpha(0.5f);
-                    mQSTileView.setEnabled(false);
-                }
-            }
-
-            @Override
-            protected Void doInBackground(Void... params) {
-                TelephonyManager tm = (TelephonyManager)
-                        mContext.getSystemService(Context.TELEPHONY_SERVICE);
-                int dataPhoneId = (int) SubscriptionManager.getDefaultDataSubId();
-                int phoneCount = tm.getPhoneCount();
-                SubscriptionController.getInstance().setDefaultDataSubId((dataPhoneId + 1) % phoneCount);
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(Void result) {
-                super.onPostExecute(result);
-                if (mQSTileView != null) {
-                    mQSTileView.setAlpha(1f);
-                    mQSTileView.setEnabled(true);
-                }
-            }
-        }.execute();
+        TelephonyManager tm = (TelephonyManager)
+                mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        int dataPhoneId = SubscriptionManager.getPhoneId(
+                SubscriptionManager.getDefaultDataSubId());
+        int phoneCount = tm.getPhoneCount();
+        int[] subIds = SubscriptionManager.getSubId((dataPhoneId + 1) % phoneCount);
+        SubscriptionManager.from(mContext).setDefaultDataSubId(subIds[0]);
     }
 
     private class DdsObserver extends ContentObserver {
