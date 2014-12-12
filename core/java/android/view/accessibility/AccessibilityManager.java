@@ -640,9 +640,13 @@ public final class AccessibilityManager {
         synchronized (mLock) {
             isEnabled = mIsEnabled;
         }
-        // Listeners are a final CopyOnWriteArrayList, hence no lock needed.
-        for (AccessibilityStateChangeListener listener :mAccessibilityStateChangeListeners) {
-            listener.onAccessibilityStateChanged(isEnabled);
+        final int listenerCount = mAccessibilityStateChangeListeners.size();
+        for (int i = 0; i < listenerCount; i++) {
+            try {
+                mAccessibilityStateChangeListeners.get(i).onAccessibilityStateChanged(isEnabled);
+            } catch (IndexOutOfBoundsException e) {
+                Log.e(LOG_TAG, "Error while notifying Accessibility State Change : " + e);
+            }
         }
     }
 
