@@ -105,10 +105,6 @@ public class ImageWallpaper extends WallpaperService {
         static final int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
         static final int EGL_OPENGL_ES2_BIT = 4;
 
-        // TODO: Not currently used, keeping around until we know we don't need it
-        @SuppressWarnings({"UnusedDeclaration"})
-        private WallpaperObserver mReceiver;
-
         Bitmap mBackground;
         int mBackgroundWidth = -1, mBackgroundHeight = -1;
         int mLastSurfaceWidth = -1, mLastSurfaceHeight = -1;
@@ -152,22 +148,6 @@ public class ImageWallpaper extends WallpaperService {
         private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
         private static final int TRIANGLE_VERTICES_DATA_UV_OFFSET = 3;
 
-        class WallpaperObserver extends BroadcastReceiver {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (DEBUG) {
-                    Log.d(TAG, "onReceive");
-                }
-
-                mLastSurfaceWidth = mLastSurfaceHeight = -1;
-                mBackground = null;
-                mBackgroundWidth = -1;
-                mBackgroundHeight = -1;
-                mRedrawNeeded = true;
-                drawFrame();
-            }
-        }
-
         public DrawableEngine() {
             super();
             setFixedSizeAllowed(true);
@@ -195,12 +175,6 @@ public class ImageWallpaper extends WallpaperService {
 
             super.onCreate(surfaceHolder);
 
-            // TODO: Don't need this currently because the wallpaper service
-            // will restart the image wallpaper whenever the image changes.
-            //IntentFilter filter = new IntentFilter(Intent.ACTION_WALLPAPER_CHANGED);
-            //mReceiver = new WallpaperObserver();
-            //registerReceiver(mReceiver, filter, null, mHandler);
-
             updateSurfaceSize(surfaceHolder);
 
             setOffsetNotificationsEnabled(false);
@@ -209,9 +183,6 @@ public class ImageWallpaper extends WallpaperService {
         @Override
         public void onDestroy() {
             super.onDestroy();
-            if (mReceiver != null) {
-                unregisterReceiver(mReceiver);
-            }
             mBackground = null;
             mWallpaperManager.forgetLoadedWallpaper();
         }
