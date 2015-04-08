@@ -2786,6 +2786,12 @@ public final class Settings {
          */
         public static final String T9_SEARCH_INPUT_LOCALE = "t9_search_input_locale";
 
+         /**
+         * show traffic in statusbar. The value is
+         * int (0: Hide  or 1: Only Rx 2: Rx&Tx).
+         */
+        public static final String STATUS_BAR_NETWORK_TRAFFIC_STYLE = "status_bar_network_traffic_style";
+
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
