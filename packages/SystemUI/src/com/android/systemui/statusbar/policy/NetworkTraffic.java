@@ -37,6 +37,7 @@ import android.provider.Settings;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.AbsoluteSizeSpan;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
@@ -76,6 +77,7 @@ public class NetworkTraffic extends TextView {
     private int GB = MB * KB;
     private String mUp = " \u25B2";
     private String mDown = " \u25BC";
+    private boolean shouldHide;
 
     private Handler mTrafficHandler = new Handler() {
         @Override
@@ -125,8 +127,10 @@ public class NetworkTraffic extends TextView {
                 output += mDown;
             }
 
+            shouldHide = TextUtils.isEmpty(output.replaceAll("(?:0" + symbol + mUp + "|0" + symbol + mDown + "|\n)", ""));
+
             // Update view if there's anything new to show
-            if (!output.contentEquals(getText())) {
+            if (!output.contentEquals(getText()) && !shouldHide) {
                 if (textSize == txtSizeMulti) {
                     int upIndex = output.indexOf(mUp);
                     int downIndex = output.indexOf(mDown);
@@ -161,7 +165,7 @@ public class NetworkTraffic extends TextView {
                     setText(spannable);
                 }
             }
-
+            setVisibility(shouldHide ? View.GONE : View.VISIBLE);
             // Post delayed message to refresh in ~1000ms
             totalRxBytes = newTotalRxBytes;
             totalTxBytes = newTotalTxBytes;
@@ -282,13 +286,11 @@ public class NetworkTraffic extends TextView {
                     lastUpdateTime = SystemClock.elapsedRealtime();
                     mTrafficHandler.sendEmptyMessage(1);
                 }
-                setVisibility(View.VISIBLE);
                 return;
             }
         } else {
             clearHandlerCallbacks();
         }
-        setVisibility(View.GONE);
     }
 
     private static boolean isSet(int intState, int intMask) {
