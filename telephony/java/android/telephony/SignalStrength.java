@@ -537,10 +537,8 @@ public class SignalStrength implements Parcelable {
     public int getAsuLevel() {
         int asuLevel = 0;
         if (isGsm) {
-            if ((getLteLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
-                    && (getLteAsuLevel() == 255)) {
-                if ((getTdScdmaLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
-                        && (getTdScdmaAsuLevel() == 255)) {
+            if (getLteLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN) {
+                if (getTdScdmaLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN) {
                     asuLevel = getGsmAsuLevel();
                 } else {
                     asuLevel = getTdScdmaAsuLevel();
@@ -575,10 +573,9 @@ public class SignalStrength implements Parcelable {
         int dBm = INVALID;
 
         if(isGsm()) {
-            if ((getLteLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
-                    && (getLteAsuLevel() == 255)) {
-                if ((getTdScdmaLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
-                        && (getTdScdmaAsuLevel() == 255)) {
+            dBm = getLteDbm();
+            if (dBm == INVALID) {
+                if (getTdScdmaLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN) {
                     dBm = getGsmDbm();
                 } else {
                     dBm = getTdScdmaDbm();
@@ -832,7 +829,6 @@ public class SignalStrength implements Parcelable {
          * -3.0 dB <= RS_SNR < 1.0 dB 1 bar RS_SNR < -3.0 dB/No Service Antenna
          * Icon Only
          */
-         /*
         if (mLteRssnr > 300) snrIconLevel = -1;
         else if (mLteRssnr >= 130) snrIconLevel = SIGNAL_STRENGTH_GREAT;
         else if (mLteRssnr >= 45) snrIconLevel = SIGNAL_STRENGTH_GOOD;
@@ -840,7 +836,7 @@ public class SignalStrength implements Parcelable {
         else if (mLteRssnr >= -30) snrIconLevel = SIGNAL_STRENGTH_POOR;
         else if (mLteRssnr >= -200)
             snrIconLevel = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
-        */
+
         if (DBG) log("getLTELevel - rsrp:" + mLteRsrp + " snr:" + mLteRssnr + " rsrpIconLevel:"
                 + rsrpIconLevel + " snrIconLevel:" + snrIconLevel);
 
