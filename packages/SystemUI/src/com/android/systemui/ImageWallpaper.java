@@ -312,31 +312,33 @@ public class ImageWallpaper extends WallpaperService {
         }
 
         void drawFrame() {
-            int newRotation = ((WindowManager) getSystemService(WINDOW_SERVICE)).
-                    getDefaultDisplay().getRotation();
+            try {
+                int newRotation = ((WindowManager) getSystemService(WINDOW_SERVICE)).
+                        getDefaultDisplay().getRotation();
 
-            // Sometimes a wallpaper is not large enough to cover the screen in one dimension.
-            // Call updateSurfaceSize -- it will only actually do the update if the dimensions
-            // should change
-            if (newRotation != mLastRotation || mSurfaceChanged ) {
-                // Update surface size (if necessary)
-                updateSurfaceSize(getSurfaceHolder());
-                mSurfaceChanged = false;
-            }
-            SurfaceHolder sh = getSurfaceHolder();
-            final Rect frame = sh.getSurfaceFrame();
-            final int dw = frame.width();
-            final int dh = frame.height();
-            boolean surfaceDimensionsChanged = dw != mLastSurfaceWidth || dh != mLastSurfaceHeight;
-
-            boolean redrawNeeded = surfaceDimensionsChanged || newRotation != mLastRotation;
-            if (!redrawNeeded && !mOffsetsChanged) {
-                if (DEBUG) {
-                    Log.d(TAG, "Suppressed drawFrame since redraw is not needed "
-                            + "and offsets have not changed.");
+                // Sometimes a wallpaper is not large enough to cover the screen in one dimension.
+                // Call updateSurfaceSize -- it will only actually do the update if the dimensions
+                // should change
+                if (newRotation != mLastRotation || mSurfaceChanged) {
+                    // Update surface size (if necessary)
+                    updateSurfaceSize(getSurfaceHolder());
+                    mSurfaceChanged = false;
                 }
-                return;
-            }
+                SurfaceHolder sh = getSurfaceHolder();
+                final Rect frame = sh.getSurfaceFrame();
+                final int dw = frame.width();
+                final int dh = frame.height();
+                boolean surfaceDimensionsChanged = dw != mLastSurfaceWidth
+                        || dh != mLastSurfaceHeight;
+
+                boolean redrawNeeded = surfaceDimensionsChanged || newRotation != mLastRotation;
+                if (!redrawNeeded && !mOffsetsChanged) {
+                    if (DEBUG) {
+                        Log.d(TAG, "Suppressed drawFrame since redraw is not needed "
+                                + "and offsets have not changed.");
+                    }
+                    return;
+                }
                 mLastRotation = newRotation;
 
                 // Load bitmap if it is not yet loaded or if it was loaded at a different size
@@ -409,7 +411,8 @@ public class ImageWallpaper extends WallpaperService {
                     }
                 } else {
                     drawWallpaperWithCanvas(sh, availw, availh, xPixels, yPixels);
-
+                }
+            } finally {
                 if (FIXED_SIZED_SURFACE && !mIsHwAccelerated) {
                     // If the surface is fixed-size, we should only need to
                     // draw it once and then we'll let the window manager
@@ -534,7 +537,7 @@ public class ImageWallpaper extends WallpaperService {
             boolean status = mEgl.eglSwapBuffers(mEglDisplay, mEglSurface);
             checkEglError();
 
-            finishGL();
+            finishGL(texture, program);
 
             return status;
         }
@@ -587,21 +590,18 @@ public class ImageWallpaper extends WallpaperService {
 
             int program = glCreateProgram();
             glAttachShader(program, vertexShader);
-            checkGlError();
-
             glAttachShader(program, fragmentShader);
-            checkGlError();
-
             glLinkProgram(program);
             checkGlError();
+
+            glDeleteShader(vertexShader);
+            glDeleteShader(fragmentShader);
 
             int[] status = new int[1];
             glGetProgramiv(program, GL_LINK_STATUS, status, 0);
             if (status[0] != GL_TRUE) {
                 String error = glGetProgramInfoLog(program);
                 Log.d(GL_LOG_TAG, "Error while linking program:\n" + error);
-                glDeleteShader(vertexShader);
-                glDeleteShader(fragmentShader);
                 glDeleteProgram(program);
                 return 0;
             }
@@ -644,7 +644,11 @@ public class ImageWallpaper extends WallpaperService {
             }
         }
 
-        private void finishGL() {
+        private void finishGL(int texture, int program) {
+            int[] textures = new int[1];
+            textures[0] = texture;
+            glDeleteTextures(1, textures, 0);
+            glDeleteProgram(program);
             mEgl.eglMakeCurrent(mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             mEgl.eglDestroySurface(mEglDisplay, mEglSurface);
             mEgl.eglDestroyContext(mEglDisplay, mEglContext);
