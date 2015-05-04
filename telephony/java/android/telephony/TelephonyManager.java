@@ -3297,7 +3297,10 @@ public class TelephonyManager {
      */
     public int getTetherApnRequired() {
         try {
-            return getITelephony().getTetherApnRequired();
+            ITelephony telephony = getITelephony();
+            if (telephony != null) {
+                return telephony.getTetherApnRequired();
+            }
         } catch (RemoteException ex) {
             Rlog.e(TAG, "hasMatchedTetherApnSetting RemoteException", ex);
         } catch (NullPointerException ex) {
